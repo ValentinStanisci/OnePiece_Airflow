@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: stg_characters
+    description: Cleaned character data from source
+    columns:
+      - name: character_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_pirates
+    description: Pirate bounty data with threat classification
+    columns:
+      - name: pirate_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_crews
+    description: Normalized crew information
+    columns:
+      - name: crew_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_database_validation
+    description: Database validation metrics for all source tables
+    columns:
+      - name: table_name
+        description: Name of the source table
+        tests:
+          - not_null
+      - name: row_count
+        description: Number of rows in the table
+        tests:
+          - not_null
+      - name: validation_status
+        description: Validation status (OK, WARNING, ERROR)
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['OK', 'WARNING: Empty table', 'ERROR']

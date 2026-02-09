@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: mart_crew_analytics
+    description: Aggregated crew analytics
+    columns:
+      - name: crew_id
+        tests:
+          - unique
+          - not_null
+
+  - name: mart_top_pirates
+    description: Top pirates ranked by bounty
+    columns:
+      - name: pirate_id
+        tests:
+          - unique
+          - not_null
+
+  - name: mart_devil_fruits_analysis
+    description: Devil Fruit distribution and power assessment
+
+  - name: mart_pipeline_summary
+    description: High-level pipeline metrics and analytics summary
+    columns:
+      - name: metric
+        description: Name of the metric
+        tests:
+          - not_null
+      - name: value
+        description: Metric value as text
+        tests:
+          - not_null
+      - name: category
+        description: Category of the metric
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['crews', 'bounties', 'pirates', 'devil_fruits']

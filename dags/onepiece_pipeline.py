@@ -5,18 +5,17 @@ End-to-end data pipeline using Apache Airflow and dbt for transforming
 One Piece character and crew data.
 
 This DAG orchestrates:
-- Database validation
+- Database validation (via dbt test)
 - dbt model execution (staging → intermediate → marts)
 - Data quality testing
-- Analytics report generation
+- Daily snapshots
 """
 
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.operators.python import PythonOperator
 
 # DAG configuration
 default_args = {
@@ -29,14 +28,31 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def validate_database_connection():
-    """Validates PostgreSQL connection"""
+def log_pipeline_start():
+    """Log pipeline execution start"""
+    print("🏴‍☠️ Starting One Piece Analytics Pipeline")
+    print(f"⏰ Execution time: {datetime.now()}")
+
+def log_pipeline_end():
+    """Log pipeline execution completion"""
     hook = PostgresHook(postgres_conn_id='postgres_onepiece')
     conn = hook.get_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM characters;")
+    
+    # Get basic stats
+    cursor.execute("""
+        SELECT 
+            (SELECT COUNT(*) FROM public_marts.mart_crew_analytics) as crews,
+            (SELECT COUNT(*) FROM public_marts.mart_top_pirates) as pirates,
+            (SELECT COUNT(*) FROM public_marts.mart_devil_fruits_analysis) as devil_fruits
+    """)
+    
     result = cursor.fetchone()
-    print(f"✅ Conexión exitosa! Total de personajes en la base: {result[0]}")
+    print(f"✅ Pipeline completed successfully!")
+    print(f"📊 Crews analyzed: {result[0]}")
+    print(f"🏴‍☠️ Pirates processed: {result[1]}")
+    print(f"🍎 Devil Fruits tracked: {result[2]}")
+    
     cursor.close()
     conn.close()
 
@@ -50,20 +66,10 @@ with DAG(
     tags=['onepiece', 'dbt', 'analytics'],
 ) as dag:
 
-    # Task 1: Database validation
-    validate_db = PostgresOperator(
-        task_id='validate_database',
-        postgres_conn_id='postgres_onepiece',
-        sql="""
-            SELECT 
-                'characters' as table_name, 
-                COUNT(*) as row_count 
-            FROM characters
-            UNION ALL
-            SELECT 'pirates', COUNT(*) FROM pirates
-            UNION ALL
-            SELECT 'crews', COUNT(*) FROM crews;
-        """,
+    # Task 1: Log start
+    start_pipeline = PythonOperator(
+        task_id='log_pipeline_start',
+        python_callable=log_pipeline_start,
     )
 
     # Task 2: Install dbt dependencies
@@ -78,63 +84,43 @@ with DAG(
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt debug --profiles-dir .',
     )
 
-    # Task 4: Run dbt models
+    # Task 4: Run source freshness checks
+    dbt_source_freshness = BashOperator(
+        task_id='dbt_source_freshness',
+        bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt source freshness --profiles-dir .',
+    )
+
+    # Task 5: Run dbt models (staging → intermediate → marts)
     dbt_run = BashOperator(
         task_id='dbt_run',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt run --profiles-dir .',
     )
 
-    # Task 5: Run data quality tests
+    # Task 6: Run data quality tests
     dbt_test = BashOperator(
         task_id='dbt_test',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt test --profiles-dir .',
     )
 
-    # Task 6: Generate analytics report
-    generate_report = PostgresOperator(
-        task_id='generate_analytics_report',
-        postgres_conn_id='postgres_onepiece',
-        sql="""
-            SELECT 
-                'Total Crews Analyzed' as metric,
-                COUNT(*)::text as value
-            FROM public_marts.mart_crew_analytics
-            UNION ALL
-            SELECT 
-                'Top Bounty (Millions)',
-                MAX(bounty_millions)::text
-            FROM public_marts.mart_top_pirates
-            UNION ALL
-            SELECT 
-                'Total Devil Fruits',
-                COUNT(*)::text
-            FROM public_marts.mart_devil_fruits_analysis;
-        """,
+    # Task 7: Run dbt snapshots (daily snapshot)
+    dbt_snapshot = BashOperator(
+        task_id='dbt_snapshot',
+        bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt snapshot --profiles-dir .',
     )
 
-    # Task 7: Daily snapshot
-    create_snapshot = PostgresOperator(
-        task_id='create_daily_snapshot',
-        postgres_conn_id='postgres_onepiece',
-        sql="""
-            CREATE TABLE IF NOT EXISTS public.pipeline_snapshots (
-                snapshot_id SERIAL PRIMARY KEY,
-                snapshot_date DATE NOT NULL,
-                total_characters INT,
-                total_pirates INT,
-                total_bounty BIGINT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            
-            INSERT INTO public.pipeline_snapshots 
-                (snapshot_date, total_characters, total_pirates, total_bounty)
-            SELECT 
-                CURRENT_DATE,
-                (SELECT COUNT(*) FROM characters),
-                (SELECT COUNT(*) FROM pirates),
-                (SELECT COALESCE(SUM(bounty), 0) FROM pirates);
-        """,
+    # Task 8: Generate documentation
+    dbt_docs_generate = BashOperator(
+        task_id='dbt_docs_generate',
+        bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt docs generate --profiles-dir .',
+    )
+
+    # Task 9: Log completion
+    end_pipeline = PythonOperator(
+        task_id='log_pipeline_end',
+        python_callable=log_pipeline_end,
     )
 
     # Task dependencies
-    validate_db >> dbt_deps >> dbt_debug >> dbt_run >> dbt_test >> generate_report >> create_snapshot
+    start_pipeline >> dbt_deps >> dbt_debug >> dbt_source_freshness >> dbt_run >> dbt_test >> [dbt_snapshot, dbt_docs_generate] >> end_pipeline
+    
+  

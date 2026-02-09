@@ -1,0 +1,65 @@
+graph TB
+    subgraph "Docker Compose"
+        subgraph "PostgreSQL Container"
+            DB[(PostgreSQL)]
+            INIT[Init Scripts]
+            RAW[Raw Tables<br/>characters, pirates,<br/>crews, devil_fruits]
+        end
+        
+        subgraph "Airflow Containers"
+            WEB[Airflow Webserver<br/>:8080]
+            SCHED[Airflow Scheduler]
+            DAG[onepiece_pipeline.py]
+        end
+    end
+    
+    subgraph "dbt Project"
+        subgraph "Staging Layer (Bronze)"
+            STG1[stg_characters]
+            STG2[stg_pirates]
+            STG3[stg_crews]
+        end
+        
+        subgraph "Intermediate Layer (Silver)"
+            INT1[int_pirates_enriched]
+        end
+        
+        subgraph "Marts Layer (Gold)"
+            MART1[mart_crew_analytics]
+            MART2[mart_top_pirates]
+            MART3[mart_devil_fruits_analysis]
+        end
+    end
+    
+    INIT --> DB
+    DB --> RAW
+    
+    RAW --> STG1
+    RAW --> STG2
+    RAW --> STG3
+    
+    STG1 --> INT1
+    STG2 --> INT1
+    STG3 --> INT1
+    
+    INT1 --> MART1
+    INT1 --> MART2
+    INT1 --> MART3
+    
+    DAG --> STG1
+    DAG --> STG2
+    DAG --> STG3
+    
+    SCHED --> DAG
+    WEB -.-> SCHED
+    
+    MART1 --> REPORT[Analytics Reports]
+    MART2 --> REPORT
+    MART3 --> REPORT
+    
+    style DB fill:#326CE5
+    style DAG fill:#017CEE
+    style MART1 fill:#00C853
+    style MART2 fill:#00C853
+    style MART3 fill:#00C853
+    style REPORT fill:#FFD600

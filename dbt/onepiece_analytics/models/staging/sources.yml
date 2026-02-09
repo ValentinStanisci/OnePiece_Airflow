@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: onepiece
+    description: Base de datos principal de One Piece con información de personajes, tripulaciones y frutas del diablo
+    database: onepiece
+    schema: public
+    tables:
+      - name: characters
+        description: Tabla de personajes del universo One Piece
+        columns:
+          - name: character_id
+            description: ID único del personaje
+            tests:
+              - unique
+              - not_null
+          - name: name
+            description: Nombre del personaje
+            tests:
+              - not_null
+      
+      - name: pirates
+        description: Información de piratas y sus recompensas
+        columns:
+          - name: pirate_id
+            tests:
+              - unique
+              - not_null
+          - name: character_id
+            tests:
+              - not_null
+      
+      - name: crews
+        description: Tripulaciones piratas
+        columns:
+          - name: crew_id
+            tests:
+              - unique
+              - not_null
+      
+      - name: devil_fruits
+        description: Frutas del Diablo y sus usuarios
+      
+      - name: crew_memberships
+        description: Historial de membresías en tripulaciones (SCD Type 2)

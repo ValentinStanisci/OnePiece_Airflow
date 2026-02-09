@@ -1,0 +1,13 @@
+onepiece_analytics:
+  outputs:
+    dev:
+      type: postgres
+      host: postgres
+      user: airflow
+      password: airflow
+      port: 5432
+      dbname: onepiece
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+  target: dev

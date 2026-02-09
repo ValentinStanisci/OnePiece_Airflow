@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+*.egg
+
+# Airflow
+logs/
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+standalone_admin_password.txt
+*.log
+
+# dbt
+dbt/onepiece_analytics/target/
+dbt/onepiece_analytics/dbt_packages/
+dbt/onepiece_analytics/logs/
+dbt/onepiece_analytics/.user.yml
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env.local
+.env.*.local
+
+# Database dumps (keep structure, not data)
+*.sql.backup
+*_backup.sql
+
+# Temporary files
+*.tmp
+*.bak
+*~

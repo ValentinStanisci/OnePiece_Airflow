@@ -72,55 +72,49 @@ with DAG(
         python_callable=log_pipeline_start,
     )
 
-    # Task 2: Install dbt dependencies
-    dbt_deps = BashOperator(
-        task_id='dbt_deps',
-        bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt deps --profiles-dir .',
-    )
-
-    # Task 3: Validate dbt configuration
+    # Task 2: Validate dbt configuration
     dbt_debug = BashOperator(
         task_id='dbt_debug',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt debug --profiles-dir .',
     )
 
-    # Task 4: Run source freshness checks
+    # Task 3: Run source freshness checks
     dbt_source_freshness = BashOperator(
         task_id='dbt_source_freshness',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt source freshness --profiles-dir .',
     )
 
-    # Task 5: Run dbt models (staging → intermediate → marts)
+    # Task 4: Run dbt models (staging → intermediate → marts)
     dbt_run = BashOperator(
         task_id='dbt_run',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt run --profiles-dir .',
     )
 
-    # Task 6: Run data quality tests
+    # Task 5: Run data quality tests
     dbt_test = BashOperator(
         task_id='dbt_test',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt test --profiles-dir .',
     )
 
-    # Task 7: Run dbt snapshots (daily snapshot)
+    # Task 6: Run dbt snapshots (daily snapshot)
     dbt_snapshot = BashOperator(
         task_id='dbt_snapshot',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt snapshot --profiles-dir .',
     )
 
-    # Task 8: Generate documentation
+    # Task 7: Generate documentation
     dbt_docs_generate = BashOperator(
         task_id='dbt_docs_generate',
         bash_command='cd /opt/airflow/dbt/onepiece_analytics && dbt docs generate --profiles-dir .',
     )
 
-    # Task 9: Log completion
+    # Task 8: Log completion
     end_pipeline = PythonOperator(
         task_id='log_pipeline_end',
         python_callable=log_pipeline_end,
     )
 
     # Task dependencies
-    start_pipeline >> dbt_deps >> dbt_debug >> dbt_source_freshness >> dbt_run >> dbt_test >> [dbt_snapshot, dbt_docs_generate] >> end_pipeline
+    start_pipeline >> dbt_debug >> dbt_source_freshness >> dbt_run >> dbt_test >> [dbt_snapshot, dbt_docs_generate] >> end_pipeline
     
   

@@ -7,8 +7,7 @@ WITH source_data AS (
         sea,
         island,
         status,
-        affiliation,
-        created_at
+        affiliation
     FROM {{ source('onepiece', 'characters') }}
 )
 
